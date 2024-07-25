@@ -6,6 +6,10 @@ import * as ImagePicker from "expo-image-picker";
 import { useState } from "react";
 import IconButton from "./components/IconButton";
 import CircleButton from "./components/CircleButton";
+import EmojiPicker from "./components/EmojiPicker";
+import EmojiList from "./components/EmojiList";
+import EmojiSticker from "./components/EmojiSticker";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 const PlaceholderImage = require("./assets/images/background-image.png");
 
@@ -13,7 +17,8 @@ export default function App() {
   /* NOTES: useState: selectedImage is a variable that holds the current state value. It starts with the default value provided in useState(). setStateFunction is a function you use to update the state. When you call this function with a new value, react RE-RENDERS the component with the new state value */
   const [selectedImage, setSelectedImage] = useState(null); //State = data that a component maintains and can change over time
   const [showAppOptions, setShowAppOptions] = useState(false);
-
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [pickedEmoji, setPickedEmoji] = useState(null);
   /* NOTES: pickImageAsync invokes launchImageLib... and handles the result */
   const pickImageAsync = async () => {
     /* NOTES: launchImageLib... method displays the system UI for choosing an image or video from the device's media library. It returns the object containing information about the selected image, which you can log in "result" and includes stuff like height, width, uri (phoneurl) and more. We will select the uri to display the image in the app */
@@ -37,7 +42,11 @@ export default function App() {
   };
 
   const onAddSticker = () => {
-    //TODO
+    setIsModalVisible(true);
+  };
+
+  const onModalClose = () => {
+    setIsModalVisible(false);
   };
 
   const onSaveImageAsync = async () => {
@@ -45,12 +54,16 @@ export default function App() {
   };
 
   return (
-    <View style={styles.container}>
+    <GestureHandlerRootView style={styles.container}>
       <View style={styles.imageContainer}>
         <ImageViewer //conditional rendering between placeholder and selectedImage done within ImageViewer component
           placeholderImageSource={PlaceholderImage}
           selectedImage={selectedImage}
         />
+        {/* Place the sticker on the imageContainer view */}
+        {pickedEmoji && (
+          <EmojiSticker imageSize={40} stickerSource={pickedEmoji} />
+        )}
       </View>
 
       {/* Conditionally render choose photo/usephoto if a new photo is chosen or user chooses to "reset" their selection  */}
@@ -79,8 +92,12 @@ export default function App() {
           />
         </View>
       )}
+      <EmojiPicker isVisible={isModalVisible} onClose={onModalClose}>
+        {/* Emoji is picked onSelect by user and placed above using the pickedEmoji && EmojiSticker logic in ImageViewer  */}
+        <EmojiList onSelect={setPickedEmoji} onCloseModal={onModalClose} />
+      </EmojiPicker>
       <StatusBar style="auto" />
-    </View>
+    </GestureHandlerRootView>
   );
 }
 
