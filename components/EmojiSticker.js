@@ -17,6 +17,7 @@ export default function EmojiSticker({ imageSize, stickerSource }) {
   const translateX = useSharedValue(0); //we start at 0 for this hook so that the initial position of the sticker is considered the starting point with 0
   const translateY = useSharedValue(0);
 
+  /* NOTES: the useSharedValue hook can be changed (mutated) at any time, and when it changes any animations or styles that depend on this value will automatically update. Shared values are non-blocking because they run on the ui thread, so they can update smoothly without slowing down the main JS thread */
   /* Double tap gesture to scale size 2x */
   const doubleTap = Gesture.Tap()
     .numberOfTaps(2)
@@ -35,6 +36,7 @@ export default function EmojiSticker({ imageSize, stickerSource }) {
   });
 
   const imageStyle = useAnimatedStyle(() => {
+    /* Spring animations are smooth and based on spring physics. They can be customized by adjusting its "damping, stiffness and mass" */
     return {
       width: withSpring(scaleImage.value),
       height: withSpring(scaleImage.value),

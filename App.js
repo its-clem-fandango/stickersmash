@@ -3,13 +3,15 @@ import { StyleSheet, Text, View, Image } from "react-native";
 import ImageViewer from "./components/ImageViewer";
 import Button from "./components/Button";
 import * as ImagePicker from "expo-image-picker";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import IconButton from "./components/IconButton";
 import CircleButton from "./components/CircleButton";
 import EmojiPicker from "./components/EmojiPicker";
 import EmojiList from "./components/EmojiList";
 import EmojiSticker from "./components/EmojiSticker";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import * as MediaLibrary from "expo-media-library";
+import { captureRef } from "react-native-view-shot";
 
 const PlaceholderImage = require("./assets/images/background-image.png");
 
@@ -19,6 +21,7 @@ export default function App() {
   const [showAppOptions, setShowAppOptions] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [pickedEmoji, setPickedEmoji] = useState(null);
+
   /* NOTES: pickImageAsync invokes launchImageLib... and handles the result */
   const pickImageAsync = async () => {
     /* NOTES: launchImageLib... method displays the system UI for choosing an image or video from the device's media library. It returns the object containing information about the selected image, which you can log in "result" and includes stuff like height, width, uri (phoneurl) and more. We will select the uri to display the image in the app */
@@ -49,23 +52,59 @@ export default function App() {
     setIsModalVisible(false);
   };
 
+  /* S C R E E N S H O T S */
+
+  //FIRST: we check for permissions using expo-media-library.
+  //when creating an app that requires access to potentially sensitive information, such as access to media library, we must first request permissions
+  const [status, requestPermission] = MediaLibrary.usePermissions();
+
+  //initially when app loads for first time, the default status is null (permissions neither granted nor denied)
+  if (status === null) {
+    //once permission is given, value of status changes to "granted"
+    requestPermission();
+  }
+
+  //SECOND: use react-native-view-shot to capture a screenshot in <View> component, which returns the URI of the screenshot image file
+  // useref creates mutable objects (changeable) which persists across renders and doesn't trigger re-render, which is crucial for performance to not unnecessarily render. Here, useRef is used to keep a reference to the component that needs to be captured as an image.
+  const imageRef = useRef();
+
   const onSaveImageAsync = async () => {
-    // TODO
+    try {
+      //captureRef is a function provided by react-native-view-shot which lets you capture a screenshot of a specific component or part of your apps UI
+      //captureRef requires a reference to the component you want to capture. To do this we are using useRef
+      //imageRef is used as the ref property in View down below
+      const localUri = await captureRef(imageRef, {
+        height: 440,
+        quality: 1,
+      });
+      await MediaLibrary.saveToLibraryAsync(localUri);
+      if (localUri) {
+        alert("Saved!");
+      }
+    } catch (e) {
+      console.log(e);
+    }
   };
 
   return (
     <GestureHandlerRootView style={styles.container}>
       <View style={styles.imageContainer}>
-        <ImageViewer //conditional rendering between placeholder and selectedImage done within ImageViewer component
-          placeholderImageSource={PlaceholderImage}
-          selectedImage={selectedImage}
-        />
-        {/* Place the sticker on the imageContainer view */}
-        {pickedEmoji && (
-          <EmojiSticker imageSize={40} stickerSource={pickedEmoji} />
-        )}
+        {/* Why are we using an additional view and not just the one above? */}
+        {/* Seperation of concerns: View with styles might contain elements or 
+        logic you dont want to capture. by using another View we isolate the exact
+        elemenets we want to capture. This also allows us to modify the parent 
+        View container without messing with the screen capturing logic */}
+        <View ref={imageRef} collapsable={false}>
+          <ImageViewer //conditional rendering between placeholder and selectedImage done within ImageViewer component
+            placeholderImageSource={PlaceholderImage}
+            selectedImage={selectedImage}
+          />
+          {/* Place the sticker on the imageContainer view */}
+          {pickedEmoji && (
+            <EmojiSticker imageSize={40} stickerSource={pickedEmoji} />
+          )}
+        </View>
       </View>
-
       {/* Conditionally render choose photo/usephoto if a new photo is chosen or user chooses to "reset" their selection  */}
       {showAppOptions ? (
         <View style={styles.optionsContainer}>
